@@ -1,0 +1,65 @@
+name: Create Release
+
+on:
+  push:
+    tags:
+      - 'v*' # Trigger on version tags (v1.0.0, v1.2.3, etc.)
+
+permissions:
+  contents: write 
+  pull-requests: write
+  repository-projects: write
+
+jobs:
+  build:
+    runs-on: macos-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          registry-url: 'https://registry.npmjs.org'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Build package
+        run: npm run build
+        
+      - name: Get version from tag
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        
+      - name: Create package archive
+        run: |
+          mkdir -p dist-package
+          cp -r dist package.json README.md LICENSE dist-package/
+          cd dist-package
+          npm pack
+          mv *.tgz ../applescript-mcp-${{ steps.get_version.outputs.VERSION }}.tgz
+          
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          body: |
+            Release of applescript-mcp version ${{ steps.get_version.outputs.VERSION }}
+            
+            ## Changes
+            
+            <!-- Add your release notes here -->
+          files: |
+            ./applescript-mcp-${{ steps.get_version.outputs.VERSION }}.tgz
+          
+      # Uncomment the following step if you want to publish to npm
+      # - name: Publish to npm
+      #   run: npm publish
+      #   env:
+      #     NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

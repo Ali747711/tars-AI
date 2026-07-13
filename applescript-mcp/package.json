@@ -1,0 +1,35 @@
+{
+  "name": "applescript-mcp",
+  "version": "1.0.4",
+  "description": "AppleScript MCP Framework",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node --esm src/index.ts",
+    "test": "npm run build && node --test \"dist/**/*.test.js\""
+  },
+  "keywords": [
+    "mcp",
+    "applescript",
+    "macos"
+  ],
+  "author": "Josh Rutkowski",
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.111.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@picovoice/porcupine-node": "^4.0.2",
+    "@picovoice/pvrecorder-node": "^1.2.9",
+    "express": "^5.2.1",
+    "node-cron": "^4.6.0",
+    "telegram": "^2.26.22",
+    "ws": "^8.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
+  }
+}
