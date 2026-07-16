@@ -99,6 +99,9 @@ export function createAgent({ mcp, provider, localTools = {} }) {
       const turn = await advance(messages);
 
       if (turn.type === "final") {
+        // Keep Jarvis's own reply in history — without it, later turns can't
+        // reference what was said and cross-session continuity breaks.
+        messages.push({ role: "assistant", content: turn.text });
         return { reply: turn.text, history: messages, steps };
       }
 
@@ -143,6 +146,7 @@ export function createAgent({ mcp, provider, localTools = {} }) {
       finalTurn.type === "final"
         ? finalTurn.text
         : "I ran out of steps before I could finish that, sir.";
+    messages.push({ role: "assistant", content: reply });
     return { reply, history: messages, steps };
   }
 

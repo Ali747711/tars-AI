@@ -29,6 +29,7 @@ import { createProvider } from "./src/providers/index.mjs";
 import { createAgent } from "./src/agent.mjs";
 import { say, createSpeaker } from "./src/tts.mjs";
 import { memoryTools, promptBlock } from "./src/memory.mjs";
+import { activityTools, recentActivityBlock } from "./src/activity.mjs";
 import { createScheduler } from "./src/scheduler.mjs";
 import { readJson, writeJsonDebounced, appendLog, readLog } from "./src/store.mjs";
 
@@ -61,7 +62,7 @@ async function boot() {
     },
   };
 
-  const localToolDefs = [...memoryTools, routineTool];
+  const localToolDefs = [...memoryTools, ...activityTools, routineTool];
   const localTools = Object.fromEntries(localToolDefs.map((t) => [t.name, t.handler]));
   const localDescriptors = localToolDefs.map(({ name, description, inputSchema }) => ({
     name,
@@ -77,8 +78,22 @@ async function boot() {
   });
   const agent = createAgent({ mcp, provider, localTools });
 
-  // System prompt is rebuilt each turn so remembered facts stay current.
-  const systemFor = () => config.systemPrompt + promptBlock();
+  // System prompt is rebuilt each turn so remembered facts and the recent
+  // activity trail stay current.
+  const systemFor = () => config.systemPrompt + promptBlock() + recentActivityBlock();
+
+  // Trim a persisted history to ~historyMax messages without splitting a
+  // tool_use/tool_result pair: cut at the oldest plain-text user message
+  // inside the window (tool results are user-role messages with block arrays).
+  function trimHistory(messages) {
+    if (messages.length <= config.historyMax) return messages;
+    for (let i = messages.length - config.historyMax; i < messages.length; i++) {
+      if (messages[i].role === "user" && typeof messages[i].content === "string") {
+        return messages.slice(i);
+      }
+    }
+    return messages; // no safe cut point found — keep everything
+  }
 
   // Routines run unattended: never auto-confirm outbound/destructive tools.
   async function runPrompt(prompt) {
@@ -164,7 +179,7 @@ async function boot() {
         confirm: async () => autoConfirm === true,
         system: systemFor(),
       });
-      sessions.set(id, newHistory);
+      sessions.set(id, trimHistory(newHistory));
       saveSessions();
       appendLog({ ts: Date.now(), sessionId: id, user: text, steps, reply });
       if (speak) say(reply);
@@ -269,7 +284,7 @@ async function boot() {
               ws.send(JSON.stringify({ type: "step", tool, args }));
             },
           });
-          sessions.set(id, newHistory);
+          sessions.set(id, trimHistory(newHistory));
           saveSessions();
           appendLog({ ts: Date.now(), sessionId: id, user: msg.text, steps, reply });
           if (speaker) flushSentence();

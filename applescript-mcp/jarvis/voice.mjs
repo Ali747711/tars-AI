@@ -20,7 +20,6 @@ import { stdin as input, stdout as output } from "node:process";
 import { readFileSync, rmSync, existsSync } from "node:fs";
 import { tmpdir, homedir } from "node:os";
 import { join } from "node:path";
-import { randomUUID } from "node:crypto";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
@@ -73,7 +72,9 @@ function preflight() {
 async function main() {
   preflight();
   const rl = readline.createInterface({ input, output });
-  const sessionId = randomUUID();
+  // Stable session shared with voice-wake so history survives restarts;
+  // JARVIS_SESSION=<name> starts/continues a different thread.
+  const sessionId = process.env.JARVIS_SESSION || "voice";
   const ws = new WebSocket(URL);
   let awaitingReply = null;
 

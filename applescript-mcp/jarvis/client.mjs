@@ -8,13 +8,13 @@
 import WebSocket from "ws";
 import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
-import { randomUUID } from "node:crypto";
 
 const PORT = Number(process.env.JARVIS_PORT || 8787);
 const URL = process.env.JARVIS_URL || `ws://localhost:${PORT}`;
 
 const rl = readline.createInterface({ input, output });
-const sessionId = randomUUID();
+// Stable session so history survives restarts (JARVIS_SESSION overrides).
+const sessionId = process.env.JARVIS_SESSION || "cli";
 const ws = new WebSocket(URL);
 
 ws.on("error", (e) => {

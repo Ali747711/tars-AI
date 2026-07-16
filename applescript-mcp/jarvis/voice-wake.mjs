@@ -43,7 +43,6 @@ import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { randomUUID } from "node:crypto";
 import { config } from "./src/config.mjs";
 import { transcribe, startWhisperServer, stopWhisperServer } from "./src/whisper.mjs";
 import { createSpeech } from "./src/speech.mjs";
@@ -199,7 +198,9 @@ async function main() {
   const whisperFast = await startWhisperServer();
   console.error(`[jarvis] transcription: ${whisperFast ? `whisper-server :${config.whisper.port}` : "whisper-cli (slow path)"}`);
 
-  const sessionId = randomUUID();
+  // Stable session so conversation history survives restarts. Point
+  // JARVIS_SESSION at a fresh name any time you want a clean slate.
+  const sessionId = process.env.JARVIS_SESSION || "voice";
   const ws = new WebSocket(URL);
   ws.on("error", (e) => {
     console.error(`[jarvis] cannot reach backend at ${URL} (${e.code || e.message}). Start node jarvis/server.mjs`);

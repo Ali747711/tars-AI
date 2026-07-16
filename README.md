@@ -94,6 +94,20 @@ Key design points:
   (low-latency `eleven_flash_v2_5` streamed over WebSocket by default),
   automatic fallback to per-sentence HTTP synthesis or the macOS `say` voice.
 
+### Memory
+
+- **Conversations survive restarts** — voice clients share a stable session
+  (`JARVIS_SESSION`, default `voice`), so "continue where we left off" just
+  works; histories are trimmed to the last ~40 messages automatically.
+- **Activity recall** — every turn is logged to `~/.jarvis/log/`, the last few
+  interactions are injected into each turn for ambient continuity, and an
+  `activity_recall` tool lets Jarvis answer "what did we do yesterday?" by
+  actually reading its diary (up to 14 days back).
+- **Long-term facts** — Jarvis saves durable facts it learns in passing
+  (names, preferences, projects) via `memory_save` and consults them before
+  asking things it should already know. "Remember/forget…" still works
+  explicitly.
+
 ### Web UI
 
 Iron-Man-inspired HUD built with React 19, Vite, Tailwind CSS v4, and
