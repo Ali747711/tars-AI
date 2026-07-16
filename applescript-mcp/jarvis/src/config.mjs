@@ -4,6 +4,7 @@
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { existsSync } from "node:fs";
+import { homedir } from "node:os";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -33,6 +34,20 @@ export const config = {
   maxSteps: Number(process.env.JARVIS_MAX_STEPS || 15), // tool-call rounds before forcing a final answer
   toolTimeoutMs: Number(process.env.JARVIS_TOOL_TIMEOUT_MS || 30000), // per-tool hard timeout
 
+  // Speech-to-text (local whisper.cpp). A persistent whisper-server keeps the
+  // model in RAM so per-turn transcription is ~0.3s instead of 1-3s of cold
+  // start; whisper-cli remains the fallback when the server can't start.
+  whisper: {
+    bin: process.env.WHISPER_BIN || "whisper-cli",
+    serverBin: process.env.WHISPER_SERVER_BIN || "whisper-server",
+    model: process.env.WHISPER_MODEL || join(homedir(), "ggml-base.en.bin"),
+    port: Number(process.env.JARVIS_WHISPER_PORT || 8788),
+  },
+
+  // How much trailing silence ends your utterance. Lower = snappier turns,
+  // higher = more tolerance for mid-sentence pauses.
+  silenceMs: Number(process.env.JARVIS_SILENCE_MS || 450),
+
   // Text-to-speech. Defaults to ElevenLabs automatically once a key is present,
   // otherwise macOS `say` with a British voice.
   tts: {
@@ -43,11 +58,20 @@ export const config = {
     elevenLabsKey: process.env.ELEVENLABS_API_KEY || "",
     // Default = "Daniel" (British) on ElevenLabs; override with your own voice id.
     elevenLabsVoiceId: process.env.ELEVENLABS_VOICE_ID || "onwK4e9ZLuTAKqWW03F9",
-    elevenLabsModel: process.env.ELEVENLABS_MODEL || "eleven_turbo_v2_5",
+    // flash_v2_5 is ElevenLabs' lowest-latency model (~75ms) — the right
+    // default for a voice assistant; use multilingual_v2 for max quality.
+    elevenLabsModel: process.env.ELEVENLABS_MODEL || "eleven_flash_v2_5",
     // Delivery tuning: higher stability = calmer, steadier (JARVIS-like).
     stability: Number(process.env.ELEVENLABS_STABILITY ?? 0.6),
     similarity: Number(process.env.ELEVENLABS_SIMILARITY ?? 0.85),
     style: Number(process.env.ELEVENLABS_STYLE ?? 0.15),
+    // Streaming synthesis over the ElevenLabs WebSocket (voice-wake): tokens go
+    // in as they arrive, PCM audio comes back in ~150-300ms and is piped
+    // straight to the speaker. Set JARVIS_TTS_STREAMING=0 to use the older
+    // per-sentence HTTP path instead.
+    streaming: process.env.JARVIS_TTS_STREAMING !== "0",
+    // Raw PCM sample rate for the streaming path (pcm_16000|pcm_22050|pcm_24000).
+    outputFormat: process.env.ELEVENLABS_OUTPUT_FORMAT || "pcm_24000",
   },
 
   // MCP server entrypoint (built output of applescript-mcp, two levels up)

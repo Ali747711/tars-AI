@@ -11,3 +11,6 @@ telegram-auth.json
 
 # Local environment (secrets)
 .env
+
+# Wake-word sidecar venv (recreate with: python3 -m venv jarvis/wakeword/.venv)
+jarvis/wakeword/.venv/

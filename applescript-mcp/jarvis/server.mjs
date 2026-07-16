@@ -202,12 +202,15 @@ async function boot() {
 
   wss.on("connection", (ws) => {
     const pending = new Map();
+    // Tracks the client's last `speak` preference so a speak:false client
+    // (e.g. voice-wake, which does its own TTS) doesn't get a server-side voice.
+    let clientSpeaks = true;
 
     const confirm = (tool, args) =>
       new Promise((resolve) => {
         const id = randomUUID();
         pending.set(id, resolve);
-        say(`I need your OK to run ${tool}.`);
+        if (clientSpeaks) say(`I need your OK to run ${tool}.`);
         ws.send(JSON.stringify({ type: "confirm", id, tool, args }));
         setTimeout(() => {
           if (pending.delete(id)) resolve(false);
@@ -235,6 +238,7 @@ async function boot() {
         const id = msg.sessionId || randomUUID();
         const history = sessions.get(id) ?? [];
         const wantSpeak = msg.speak !== false;
+        clientSpeaks = wantSpeak;
         const speaker = wantSpeak ? createSpeaker() : null;
 
         let sentenceBuf = "";

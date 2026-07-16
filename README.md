@@ -79,10 +79,20 @@ Key design points:
 
 - **Push-to-talk** (`voice.mjs`) — record with SoX, transcribe locally with
   whisper.cpp (no audio leaves your machine).
-- **Wake word** (`voice-wake.mjs`) — always-listening "Jarvis" trigger via
-  Picovoice Porcupine.
-- **Natural speech replies** — ElevenLabs neural TTS when a key is present,
-  automatic fallback to the macOS `say` voice.
+- **Conversational wake word** (`voice-wake.mjs`) — always-listening "Jarvis"
+  trigger, with a ChatGPT-voice-style loop: an acknowledgment chime the instant
+  it hears you, speech that starts while the model is still writing, barge-in
+  ("Jarvis" interrupts it mid-sentence or mid-thought), and a follow-up window
+  after each reply so you can keep talking without repeating the wake word.
+- **Low-latency pipeline** — a persistent `whisper-server` keeps the STT model
+  in RAM (~0.3s per transcription instead of a 1–3s cold start), end-of-speech
+  is detected after ~0.45s of silence (`JARVIS_SILENCE_MS`), and Claude's
+  tokens stream straight into the ElevenLabs WebSocket, whose PCM audio pipes
+  to the speaker as it arrives — roughly 1–1.5s from when you stop talking to
+  when Jarvis starts answering.
+- **Natural speech replies** — ElevenLabs neural TTS when a key is present
+  (low-latency `eleven_flash_v2_5` streamed over WebSocket by default),
+  automatic fallback to per-sentence HTTP synthesis or the macOS `say` voice.
 
 ### Web UI
 
@@ -154,13 +164,24 @@ curl -L -o ~/ggml-base.en.bin \
 node jarvis/voice.mjs        # Enter to talk, Enter to stop
 ```
 
-**Wake word (always listening):** get a free access key from
-[console.picovoice.ai](https://console.picovoice.ai), set
-`PICOVOICE_ACCESS_KEY` in `.env`, then:
+**Wake word (always listening):** the default engine is
+[openWakeWord](https://github.com/dscripka/openWakeWord) — free, offline, no
+account. One-time setup:
 
 ```bash
-node jarvis/voice-wake.mjs   # say "Jarvis" to activate
+python3 -m venv jarvis/wakeword/.venv
+jarvis/wakeword/.venv/bin/pip install openwakeword onnxruntime
+jarvis/wakeword/.venv/bin/python -c \
+  "from openwakeword.utils import download_models; download_models(model_names=['hey_jarvis_v0.1'])"
+node jarvis/voice-wake.mjs   # say "Hey Jarvis" to activate
 ```
+
+(Alternative: set `PICOVOICE_ACCESS_KEY` from
+[console.picovoice.ai](https://console.picovoice.ai) to use Porcupine instead —
+wake phrase is just "Jarvis".)
+
+Once it answers, just keep talking — the mic stays hot for a few seconds
+(`JARVIS_FOLLOWUP_MS`). Say "Jarvis" at any time to interrupt it.
 
 **Web UI:**
 
@@ -224,7 +245,14 @@ All settings live in `applescript-mcp/.env` (see
 | `ELEVENLABS_API_KEY` / `ELEVENLABS_VOICE_ID` | neural TTS | fallback to `say` |
 | `JARVIS_VOICE` | macOS fallback voice | `Daniel` |
 | `WHISPER_BIN` / `WHISPER_MODEL` / `REC_BIN` | local voice input | `whisper-cli` / `~/ggml-base.en.bin` / `sox` |
-| `PICOVOICE_ACCESS_KEY` | wake-word detection | — |
+| `JARVIS_WAKE_ENGINE` | `openwakeword` or `porcupine` | auto |
+| `JARVIS_WAKE_THRESHOLD` | openWakeWord sensitivity (0..1) | `0.5` |
+| `JARVIS_MIC` | pin the microphone by name substring | system default |
+| `JARVIS_WAKE_DEBUG` | `1` prints live wake scores + mic level | off |
+| `PICOVOICE_ACCESS_KEY` | enables the Porcupine engine | — |
+| `JARVIS_FOLLOWUP_MS` | follow-up listening window after a reply | `7000` |
+| `JARVIS_WAKE_SOUND` | wake acknowledgment chime file | `Pop.aiff` |
+| `JARVIS_ONSET_RMS` | speech-onset threshold in the follow-up window | `700` |
 | `VITE_JARVIS_URL` (client) | backend WebSocket URL | `ws://localhost:8787` |
 
 ## Tech Stack
