@@ -28,7 +28,7 @@ import { createMcp, resultToText } from "./src/mcp.mjs";
 import { createProvider } from "./src/providers/index.mjs";
 import { createAgent } from "./src/agent.mjs";
 import { say, createSpeaker } from "./src/tts.mjs";
-import { memoryTools, promptBlock } from "./src/memory.mjs";
+import { memoryTools, promptBlock, list as memoryList, save as memorySave, removeById as memoryRemove } from "./src/memory.mjs";
 import { activityTools, recentActivityBlock } from "./src/activity.mjs";
 import { createScheduler } from "./src/scheduler.mjs";
 import { readJson, writeJsonDebounced, appendLog, readLog } from "./src/store.mjs";
@@ -211,6 +211,19 @@ async function boot() {
 
   // Activity log
   app.get("/log", (req, res) => res.json(readLog(req.query.day, Number(req.query.limit) || 200)));
+
+  // Long-term memory (web UI)
+  app.get("/memory", (req, res) => res.json(memoryList(req.query.query, req.query.limit)));
+  app.post("/memory", (req, res) => {
+    const text = String(req.body?.text ?? "").trim();
+    if (!text) return res.status(400).json({ error: "body must include a `text` string" });
+    memorySave(text);
+    res.json({ ok: true });
+  });
+  app.delete("/memory/:id", (req, res) => {
+    if (!memoryRemove(req.params.id)) return res.status(404).json({ error: "no such memory" });
+    res.json({ ok: true });
+  });
 
   const httpServer = createServer(app);
   const wss = new WebSocketServer({ server: httpServer });

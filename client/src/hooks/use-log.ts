@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 
 export type LogEntry = {
   ts: number
@@ -38,4 +38,32 @@ export function useLog(httpBase: string, intervalMs = 15000): LogEntry[] {
   }, [httpBase, intervalMs])
 
   return entries
+}
+
+/**
+ * Fetch a full day of the activity log on demand (newest first). State updates
+ * only happen in promise callbacks, and `loading` is derived from whether the
+ * loaded day matches the requested one — no setState in the effect body.
+ */
+export function useDayLog(httpBase: string, day: string) {
+  const [loaded, setLoaded] = useState<{
+    day: string
+    entries: LogEntry[]
+  } | null>(null)
+
+  const refresh = useCallback(() => {
+    fetch(`${httpBase}/log?day=${encodeURIComponent(day)}&limit=500`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data: LogEntry[]) =>
+        setLoaded({ day, entries: [...data].reverse() })
+      )
+      .catch(() => setLoaded({ day, entries: [] }))
+  }, [httpBase, day])
+
+  useEffect(() => {
+    refresh()
+  }, [refresh])
+
+  const current = loaded?.day === day ? loaded.entries : []
+  return { entries: current, loading: loaded?.day !== day, refresh }
 }

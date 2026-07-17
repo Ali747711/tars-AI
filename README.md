@@ -110,10 +110,23 @@ Key design points:
 
 ### Web UI
 
-Iron-Man-inspired HUD built with React 19, Vite, Tailwind CSS v4, and
-shadcn/ui-style components: boot overlay, animated core, live activity feed of
-tool calls, inline confirmation prompts, browser speech recognition for voice
-input, and a tool palette showing every connected capability.
+Iron-Man-inspired dashboard app built with React 19, Vite, Tailwind CSS v4,
+and shadcn/ui-style components. A sidebar navigates five pages (hash-routed,
+so the chat WebSocket survives page switches):
+
+- **Chat** — streamed conversation with inline confirmation prompts and
+  browser speech recognition for voice input.
+- **Dashboard** — mission control: backend health, model, tool/session/routine
+  stats, today's interaction count with most-used tools, live Mac status
+  (battery, focused app, tab, now playing), quick actions.
+- **Routines** — full scheduler with a friendly builder (every day / weekdays /
+  weekly at a time → cron generated for you), enable/disable switches.
+- **Activity** — Jarvis's diary, browsable by day with search.
+- **Memory** — view, search, teach, and delete long-term facts
+  (`GET/POST/DELETE /memory` on the backend).
+
+Plus a tool palette showing every connected capability, boot overlay, and an
+animated assistant core.
 
 ### Safety gate
 

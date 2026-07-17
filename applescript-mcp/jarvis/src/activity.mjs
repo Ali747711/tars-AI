@@ -3,13 +3,12 @@
 // an ambient "recent activity" prompt block, and an activity_recall tool for
 // questions like "what did we do yesterday?".
 
-import { readLog } from "./store.mjs";
+import { readLog, localDay } from "./store.mjs";
 
 const MAX_DAYS_BACK = 14;
 
 function dayString(daysAgo = 0) {
-  const d = new Date(Date.now() - daysAgo * 86_400_000);
-  return d.toISOString().slice(0, 10);
+  return localDay(new Date(Date.now() - daysAgo * 86_400_000));
 }
 
 function clip(text, max = 120) {
@@ -21,7 +20,7 @@ function clip(text, max = 120) {
 function formatEntry(entry, withDay = false) {
   const t = new Date(entry.ts);
   const hhmm = `${String(t.getHours()).padStart(2, "0")}:${String(t.getMinutes()).padStart(2, "0")}`;
-  const when = withDay ? `${new Date(entry.ts).toISOString().slice(0, 10)} ${hhmm}` : hhmm;
+  const when = withDay ? `${localDay(t)} ${hhmm}` : hhmm;
   const tools = entry.steps?.length ? ` [tools: ${entry.steps.map((s) => s.tool).join(", ")}]` : "";
   const who = entry.kind === "routine" ? "routine" : "user";
   return `- ${when} ${who}: ${clip(entry.user)} → ${clip(entry.reply)}${tools}`;

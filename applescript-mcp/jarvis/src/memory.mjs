@@ -16,6 +16,20 @@ export function save(text) {
   return `Noted, sir: ${clean}`;
 }
 
+/** Raw items for the web UI: [{ id, text, ts }], optionally filtered. */
+export function list(query = "", limit = 200) {
+  const q = String(query ?? "").toLowerCase().trim();
+  const hits = q ? items.filter((m) => m.text.toLowerCase().includes(q)) : items;
+  return hits.slice(0, Math.min(Math.max(Number(limit) || 200, 1), 500));
+}
+
+export function removeById(id) {
+  const before = items.length;
+  items = items.filter((m) => m.id !== id);
+  if (items.length !== before) writeJson(FILE, items);
+  return items.length !== before;
+}
+
 export function search(query, limit = 5) {
   const q = String(query ?? "").toLowerCase();
   const hits = (q ? items.filter((m) => m.text.toLowerCase().includes(q)) : items).slice(0, limit);
