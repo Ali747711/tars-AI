@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { Mic, Radio, TriangleAlert } from "lucide-react"
+import { TriangleAlert } from "lucide-react"
 import { TokenSource } from "livekit-client"
 import {
   RoomAudioRenderer,
@@ -8,9 +8,9 @@ import {
 } from "@livekit/components-react"
 
 import { ConversationView } from "@/components/jarvis/conversation-view"
+import { VoiceHome } from "@/components/jarvis/voice-home"
 import { PageHeader } from "@/components/page-header"
 import { useTheme } from "@/components/theme-provider"
-import { Button } from "@/components/ui/button"
 import { useHealth } from "@/hooks/use-health"
 
 export function VoicePage({ httpBase }: { httpBase: string }) {
@@ -37,7 +37,7 @@ function VoiceRoom({ httpBase }: { httpBase: string }) {
 
   return (
     <SessionProvider session={session}>
-      <VoiceSession session={session} />
+      <VoiceSession session={session} httpBase={httpBase} />
     </SessionProvider>
   )
 }
@@ -52,7 +52,13 @@ function Waiting() {
   )
 }
 
-function VoiceSession({ session }: { session: ReturnType<typeof useSession> }) {
+function VoiceSession({
+  session,
+  httpBase,
+}: {
+  session: ReturnType<typeof useSession>
+  httpBase: string
+}) {
   const { theme } = useTheme()
   const [error, setError] = useState<string | null>(null)
   const [starting, setStarting] = useState(false)
@@ -88,37 +94,12 @@ function VoiceSession({ session }: { session: ReturnType<typeof useSession> }) {
 
   if (!session.isConnected) {
     return (
-      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-4 p-6 text-center">
-        <span className="relative flex size-16 items-center justify-center">
-          <span className="orb-anim absolute inset-0 animate-ping rounded-full bg-primary/15" />
-          <span className="relative flex size-16 items-center justify-center rounded-full bg-accent">
-            <Mic className="size-6 text-primary" />
-          </span>
-        </span>
-        <div>
-          <h1 className="text-lg font-semibold tracking-tight">
-            Talk to Jarvis
-          </h1>
-          <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-            Speak from this browser — or your phone. Jarvis still runs every
-            action on your Mac.
-          </p>
-        </div>
-        <Button onClick={start} disabled={starting} className="gap-1.5">
-          <Radio className="size-4" />
-          {starting ? "Connecting…" : "Start conversation"}
-        </Button>
-        {error && (
-          <p className="max-w-md text-xs text-destructive">
-            {error}
-            <span className="mt-1 block text-muted-foreground">
-              Is the agent running? Start it with{" "}
-              <code className="font-mono">python agent.py dev</code> in{" "}
-              <code className="font-mono">livekit-agent/</code>.
-            </span>
-          </p>
-        )}
-      </div>
+      <VoiceHome
+        httpBase={httpBase}
+        onStart={start}
+        starting={starting}
+        error={error}
+      />
     )
   }
 
