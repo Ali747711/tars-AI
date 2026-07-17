@@ -9,12 +9,17 @@ battery level?"*, or *"send Ali a Telegram message that I'm running late"* —
 Jarvis plans the steps, calls the right macOS tools, and reports back, with a
 confirmation gate before anything irreversible happens.
 
+![Talking to Jarvis — the live voice conversation: an audio-reactive core, a streaming transcript of both sides, and each Mac tool call shown as it runs.](public/welcome.png)
+
+*Talk to Jarvis by voice from the browser (or your phone) — the transcript
+streams both sides and every Mac tool call appears live as it runs.*
+
 ## Repository Layout
 
 ```
 jarvis/
 ├── applescript-mcp/        # MCP server + Jarvis backend
-│   ├── src/                #   MCP server: 46 tools across 18 macOS categories
+│   ├── src/                #   MCP server: 60 tools across 18 macOS categories
 │   │   ├── categories/     #   calendar, chrome, clipboard, contacts, files,
 │   │   │                   #   finder, iterm, mail, messages, music, notes,
 │   │   │                   #   notifications, pages, screen, shortcuts,
@@ -29,9 +34,15 @@ jarvis/
 │       ├── brain.mjs       #   standalone CLI / REPL, no server needed
 │       └── src/            #   agent loop, MCP client, providers, TTS, memory,
 │                           #   scheduler, config
+├── livekit-agent/          # LiveKit voice agent (Python) — browser/phone voice
+│   ├── agent.py            #   session wiring: Whisper STT + Claude + ElevenLabs
+│   ├── whisper_stt.py      #   custom STT over the local whisper-server
+│   ├── jarvis_tools.py     #   memory/activity/routine tools via backend REST
+│   ├── tool_events.py      #   streams live tool activity to the browser
+│   └── tests/              #   behavioral pytest suite
 └── client/                 # Web UI — React 19 + Vite + Tailwind v4
-    └── src/                #   Iron-Man-style HUD: chat, live tool steps,
-                            #   confirmations, voice input, tool palette
+    └── src/                #   Iron-Man-style HUD: voice, chat, dashboard,
+                            #   routines, activity, memory, tool palette
 ```
 
 ## Architecture
@@ -59,7 +70,7 @@ Key design points:
 
 ## Features
 
-### macOS control (46 MCP tools)
+### macOS control (60 MCP tools)
 
 | Category | Examples |
 | --- | --- |
@@ -117,15 +128,20 @@ Key design points:
 ### Web UI
 
 Iron-Man-inspired dashboard app built with React 19, Vite, Tailwind CSS v4,
-and shadcn/ui-style components. A sidebar navigates five pages (hash-routed,
-so the chat WebSocket survives page switches):
+and shadcn/ui-style components. A sidebar navigates six pages (hash-routed,
+so the chat WebSocket and an in-flight voice call survive page switches):
 
-- **Chat** — streamed conversation with inline confirmation prompts and
+- **Voice** *(default landing)* — the home screen: a WebGL aurora glows behind
+  the greeting and **Start conversation** button, with live ambient cards
+  (Mac status, recent activity, active routines) below. Start a call and it
+  becomes a full-duplex conversation with the LiveKit agent — an audio-reactive
+  core, a streaming transcript of both sides, the agent's state
+  (listening / thinking / speaking), and each Mac tool call shown live as it
+  runs. Works from the browser or your phone. Needs `LIVEKIT_*` credentials
+  plus the agent running (`python agent.py dev`); until then the page explains
+  the setup rather than failing.
+- **Chat** — streamed text conversation with inline confirmation prompts and
   browser speech recognition for voice input.
-- **Voice** — full duplex conversation with the LiveKit agent from the browser
-  or your phone: aura audio visualizer, live transcript, and mic controls.
-  Needs `LIVEKIT_*` credentials plus the agent running (`python agent.py dev`);
-  until then the page explains the setup rather than failing.
 - **Dashboard** — mission control: backend health, model, tool/session/routine
   stats, today's interaction count with most-used tools, live Mac status
   (battery, focused app, tab, now playing), quick actions.
@@ -135,8 +151,14 @@ so the chat WebSocket survives page switches):
 - **Memory** — view, search, teach, and delete long-term facts
   (`GET/POST/DELETE /memory` on the backend).
 
-Plus a tool palette showing every connected capability, boot overlay, and an
-animated assistant core.
+![The Voice home screen: an aurora shader behind the greeting and Start button, with live Mac status, recent activity, and active-routine cards.](public/image.png)
+
+*The Voice home screen — a cinematic landing that's also live: status, recent
+activity, and routines at a glance, one click from talking.*
+
+Plus a tool palette listing every connected capability, grouped by app:
+
+<img src="public/tools.png" alt="The tool palette listing all 60 tools across 18 macOS app categories." width="360" />
 
 ### Safety gate
 
@@ -251,9 +273,13 @@ node jarvis/brain.mjs        # interactive REPL
 
 | Endpoint | Description |
 | --- | --- |
-| `GET /health` | `{ ok, provider, model, tools, sessions }` |
+| `GET /health` | `{ ok, provider, model, tools, sessions, routines, livekit }` |
 | `GET /tools` | `[{ name, description }]` |
 | `POST /chat` | body `{ text, sessionId?, autoConfirm?, speak? }` → `{ reply, steps, sessionId }` |
+| `GET /log?day=` | activity log for a day (Jarvis's diary) |
+| `GET/POST/DELETE /memory` | list / add / delete long-term facts |
+| `GET/POST/DELETE /routines` | manage scheduled routines |
+| `POST /livekit/token` | mint a short-lived room token for the browser Voice page |
 | WebSocket | send `{type:"chat", text, sessionId?}`; receive `step`, `confirm`, `final`, `error`; answer a `confirm` with `{type:"confirm", id, allow}` |
 
 Example:
@@ -290,6 +316,8 @@ All settings live in `applescript-mcp/.env` (see
 | `JARVIS_FOLLOWUP_MS` | follow-up listening window after a reply | `7000` |
 | `JARVIS_WAKE_SOUND` | wake acknowledgment chime file | `Pop.aiff` |
 | `JARVIS_ONSET_RMS` | speech-onset threshold in the follow-up window | `700` |
+| `JARVIS_SILENCE_MS` | trailing silence that ends an utterance | `450` |
+| `LIVEKIT_URL` / `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` | LiveKit Cloud (browser/phone voice) | — |
 | `VITE_JARVIS_URL` (client) | backend WebSocket URL | `ws://localhost:8787` |
 
 ## Tech Stack
@@ -297,10 +325,12 @@ All settings live in `applescript-mcp/.env` (see
 - **Backend** — Node.js (ESM), Express 5, `ws`, `@anthropic-ai/sdk`,
   `@modelcontextprotocol/sdk`, node-cron, GramJS (`telegram`)
 - **MCP server** — TypeScript, AppleScript via `osascript`
-- **Voice** — whisper.cpp + SoX (input), Picovoice Porcupine (wake word),
-  ElevenLabs / macOS `say` (output)
+- **Voice** — whisper.cpp + SoX (input), openWakeWord / Picovoice Porcupine
+  (wake word), ElevenLabs / macOS `say` (output)
+- **LiveKit agent** — Python, LiveKit Agents SDK, Silero VAD, local whisper-server
+  STT, ElevenLabs TTS, Anthropic LLM
 - **Web UI** — React 19, TypeScript, Vite, Tailwind CSS v4, shadcn/ui-style
-  components, lucide-react
+  components, `@livekit/components-react`, ogl (aurora shader), lucide-react
 
 ## Development
 
