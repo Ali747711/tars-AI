@@ -81,6 +81,22 @@ export const config = {
   // MCP server entrypoint (built output of applescript-mcp, two levels up)
   serverEntry: join(HERE, "..", "..", "dist", "index.js"),
 
+  // LiveKit Cloud — powers the browser/phone voice page. The Python agent
+  // (livekit-agent/) joins rooms created here. Without these three values the
+  // token endpoint reports "not configured" and the Voice page explains how to
+  // set it up, rather than failing cryptically.
+  livekit: {
+    url: process.env.LIVEKIT_URL || "",
+    apiKey: process.env.LIVEKIT_API_KEY || "",
+    apiSecret: process.env.LIVEKIT_API_SECRET || "",
+    get configured() {
+      return Boolean(this.url && this.apiKey && this.apiSecret);
+    },
+    // Browser tokens are short-lived; the page fetches a fresh one per session.
+    tokenTtlSeconds: Number(process.env.LIVEKIT_TOKEN_TTL || 900),
+    defaultRoom: process.env.LIVEKIT_ROOM || "jarvis",
+  },
+
   // Tools that act irreversibly on the outside world — held for confirmation.
   confirmTools: new Set(
     (process.env.JARVIS_CONFIRM_TOOLS ||

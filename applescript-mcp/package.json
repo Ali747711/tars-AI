@@ -23,6 +23,7 @@
     "@picovoice/porcupine-node": "^4.0.2",
     "@picovoice/pvrecorder-node": "^1.2.9",
     "express": "^5.2.1",
+    "livekit-server-sdk": "^2.17.0",
     "node-cron": "^4.6.0",
     "telegram": "^2.26.22",
     "ws": "^8.21.0"

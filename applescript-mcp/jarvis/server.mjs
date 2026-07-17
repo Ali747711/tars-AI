@@ -22,6 +22,7 @@ import express from "express";
 import { WebSocketServer } from "ws";
 import { createServer } from "node:http";
 import { randomUUID } from "node:crypto";
+import { AccessToken } from "livekit-server-sdk";
 
 import { config } from "./src/config.mjs";
 import { createMcp, resultToText } from "./src/mcp.mjs";
@@ -138,6 +139,7 @@ async function boot() {
       tools: mcp.tools.length,
       sessions: sessions.size,
       routines: scheduler.list().length,
+      livekit: config.livekit.configured,
     });
   });
 
@@ -211,6 +213,36 @@ async function boot() {
 
   // Activity log
   app.get("/log", (req, res) => res.json(readLog(req.query.day, Number(req.query.limit) || 200)));
+
+  // LiveKit access token for the browser Voice page. The client (livekit-client
+  // TokenSource.endpoint) POSTs snake_case options and expects
+  // { serverUrl, participantToken } back. The API secret never leaves the server.
+  app.post("/livekit/token", async (req, res) => {
+    if (!config.livekit.configured) {
+      return res.status(503).json({
+        error:
+          "LiveKit is not configured. Add LIVEKIT_URL, LIVEKIT_API_KEY and " +
+          "LIVEKIT_API_SECRET to applescript-mcp/.env (free project at cloud.livekit.io).",
+        configured: false,
+      });
+    }
+
+    const room = String(req.body?.room_name || config.livekit.defaultRoom);
+    const identity = String(req.body?.participant_identity || `user-${randomUUID().slice(0, 8)}`);
+    const name = String(req.body?.participant_name || "You");
+
+    try {
+      const at = new AccessToken(config.livekit.apiKey, config.livekit.apiSecret, {
+        identity,
+        name,
+        ttl: config.livekit.tokenTtlSeconds,
+      });
+      at.addGrant({ roomJoin: true, room, canPublish: true, canSubscribe: true });
+      res.json({ serverUrl: config.livekit.url, participantToken: await at.toJwt() });
+    } catch (e) {
+      res.status(500).json({ error: e?.message ?? String(e) });
+    }
+  });
 
   // Long-term memory (web UI)
   app.get("/memory", (req, res) => res.json(memoryList(req.query.query, req.query.limit)));

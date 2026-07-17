@@ -122,6 +122,10 @@ so the chat WebSocket survives page switches):
 
 - **Chat** — streamed conversation with inline confirmation prompts and
   browser speech recognition for voice input.
+- **Voice** — full duplex conversation with the LiveKit agent from the browser
+  or your phone: aura audio visualizer, live transcript, and mic controls.
+  Needs `LIVEKIT_*` credentials plus the agent running (`python agent.py dev`);
+  until then the page explains the setup rather than failing.
 - **Dashboard** — mission control: backend health, model, tool/session/routine
   stats, today's interaction count with most-used tools, live Mac status
   (battery, focused app, tab, now playing), quick actions.

@@ -1,4 +1,5 @@
 import {
+  AudioLines,
   Brain,
   CalendarClock,
   History,
@@ -13,6 +14,7 @@ import { cn } from "@/lib/utils"
 
 const NAV: { page: Page; label: string; icon: LucideIcon }[] = [
   { page: "chat", label: "Chat", icon: MessageSquare },
+  { page: "voice", label: "Voice", icon: AudioLines },
   { page: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { page: "routines", label: "Routines", icon: CalendarClock },
   { page: "activity", label: "Activity", icon: History },

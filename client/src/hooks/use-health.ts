@@ -7,6 +7,8 @@ export type Health = {
   tools?: number
   sessions?: number
   routines?: number
+  /** Whether the backend has LiveKit credentials (browser voice available). */
+  livekit?: boolean
 }
 
 const OFFLINE: Health = { ok: false }

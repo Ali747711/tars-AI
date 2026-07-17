@@ -8,6 +8,7 @@ import { ChatPage } from "@/pages/chat-page"
 import { DashboardPage } from "@/pages/dashboard-page"
 import { MemoryPage } from "@/pages/memory-page"
 import { RoutinesPage } from "@/pages/routines-page"
+import { VoicePage } from "@/pages/voice-page"
 import { useCoreState } from "@/hooks/use-core-state"
 import { useJarvis } from "@/hooks/use-jarvis"
 import { useRoute } from "@/hooks/use-route"
@@ -32,15 +33,24 @@ export function App() {
 
   return (
     <div className="flex h-svh flex-col bg-background text-foreground">
-      <AppHeader status={jarvis.status} coreState={coreState} onOpenTools={openTools} />
+      <AppHeader
+        status={jarvis.status}
+        coreState={coreState}
+        onOpenTools={openTools}
+      />
 
       <div className="flex min-h-0 flex-1">
         <AppSidebar page={page} onNavigate={navigate} onOpenTools={openTools} />
 
         <main className="flex min-h-0 min-w-0 flex-1 flex-col">
           {page === "chat" && <ChatPage jarvis={jarvis} mic={mic} />}
+          {page === "voice" && <VoicePage httpBase={HTTP_BASE} />}
           {page === "dashboard" && (
-            <DashboardPage httpBase={HTTP_BASE} onNavigate={navigate} onOpenTools={openTools} />
+            <DashboardPage
+              httpBase={HTTP_BASE}
+              onNavigate={navigate}
+              onOpenTools={openTools}
+            />
           )}
           {page === "routines" && <RoutinesPage httpBase={HTTP_BASE} />}
           {page === "activity" && <ActivityPage httpBase={HTTP_BASE} />}
@@ -48,7 +58,11 @@ export function App() {
         </main>
       </div>
 
-      <ToolPalette open={toolsOpen} onClose={() => setToolsOpen(false)} httpBase={HTTP_BASE} />
+      <ToolPalette
+        open={toolsOpen}
+        onClose={() => setToolsOpen(false)}
+        httpBase={HTTP_BASE}
+      />
     </div>
   )
 }

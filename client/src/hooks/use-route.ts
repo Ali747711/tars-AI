@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useState } from "react"
 
-export const PAGES = ["chat", "dashboard", "routines", "activity", "memory"] as const
+export const PAGES = [
+  "chat",
+  "voice",
+  "dashboard",
+  "routines",
+  "activity",
+  "memory",
+] as const
 export type Page = (typeof PAGES)[number]
 
 const parse = (): Page => {
