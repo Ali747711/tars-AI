@@ -22,6 +22,7 @@
   "menuColor": "default",
   "menuAccent": "subtle",
   "registries": {
-    "@aliimam": "https://aliimam.in/r/{name}.json"
+    "@aliimam": "https://aliimam.in/r/{name}.json",
+    "@agents-ui": "https://livekit.com/ui/r/{name}.json"
   }
 }

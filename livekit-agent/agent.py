@@ -23,6 +23,7 @@ from livekit.plugins import anthropic, elevenlabs, silero
 
 import settings
 from jarvis_tools import JARVIS_TOOLS
+from mcp_result import anthropic_tool_result_resolver
 from whisper_stt import LocalWhisperSTT, ensure_whisper_server
 
 logger = logging.getLogger("jarvis-agent")
@@ -32,7 +33,13 @@ def build_mac_toolset() -> mcp.MCPToolset:
     """All applescript-mcp tools, minus the blocked (outbound/irreversible) ones."""
     toolset = mcp.MCPToolset(
         id="mac",
-        mcp_server=mcp.MCPServerStdio(command="node", args=[settings.MCP_SERVER_PATH]),
+        mcp_server=mcp.MCPServerStdio(
+            command="node",
+            args=[settings.MCP_SERVER_PATH],
+            # Without this, image results (screen_capture) reach Anthropic
+            # malformed and 400 the whole conversation — see mcp_result.py.
+            tool_result_resolver=anthropic_tool_result_resolver,
+        ),
     )
     return toolset.filter_tools(lambda tool: tool.name not in settings.BLOCKED_TOOLS)
 
