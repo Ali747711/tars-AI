@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Mic, Radio, TriangleAlert } from "lucide-react"
 import { TokenSource } from "livekit-client"
 import {
@@ -67,8 +67,15 @@ function VoiceSession({ session }: { session: ReturnType<typeof useSession> }) {
     theme === "dark" ||
     (theme === "system" && document.documentElement.classList.contains("dark"))
 
-  // Leaving the page should hang up rather than keep the mic open.
-  useEffect(() => () => void session.end().catch(() => {}), [session])
+  // Leaving the page should hang up rather than keep the mic open. useSession
+  // returns a fresh object on every connection-state change, so we hold the
+  // latest in a ref and end() only on real unmount — keying the effect on
+  // [session] would fire end() mid-connect and tear down the call instantly.
+  const sessionRef = useRef(session)
+  useEffect(() => {
+    sessionRef.current = session
+  }, [session])
+  useEffect(() => () => void sessionRef.current.end().catch(() => {}), [])
 
   const start = async () => {
     setError(null)
