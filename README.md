@@ -93,6 +93,12 @@ Key design points:
 - **Natural speech replies** — ElevenLabs neural TTS when a key is present
   (low-latency `eleven_flash_v2_5` streamed over WebSocket by default),
   automatic fallback to per-sentence HTTP synthesis or the macOS `say` voice.
+- **LiveKit voice agent** (`livekit-agent/`) — a Python worker on the LiveKit
+  Agents framework with professional turn detection and barge-in. Same local
+  Whisper STT, same ElevenLabs voice, all Mac tools via MCP, and memory shared
+  with the backend over REST. `agent.py console` runs fully local; with LiveKit
+  Cloud credentials you can talk to Jarvis from your phone or browser anywhere
+  while actions execute on your Mac.
 
 ### Memory
 
