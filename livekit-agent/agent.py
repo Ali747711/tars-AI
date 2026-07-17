@@ -24,6 +24,7 @@ from livekit.plugins import anthropic, elevenlabs, silero
 import settings
 from jarvis_tools import JARVIS_TOOLS
 from mcp_result import anthropic_tool_result_resolver
+from tool_events import attach_tool_events
 from whisper_stt import LocalWhisperSTT, ensure_whisper_server
 
 logger = logging.getLogger("jarvis-agent")
@@ -73,6 +74,9 @@ async def jarvis(ctx: agents.JobContext) -> None:
             model=settings.ELEVENLABS_MODEL,
         ),
     )
+    # Stream tool-call activity to the browser Voice page (started/ended chips).
+    attach_tool_events(session, ctx.room)
+
     await session.start(room=ctx.room, agent=JarvisAgent())
     await session.generate_reply(
         instructions="Greet the user briefly, in character, and ask how you can help."

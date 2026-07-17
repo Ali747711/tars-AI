@@ -7,14 +7,11 @@ import {
   useSession,
 } from "@livekit/components-react"
 
-import { AgentSessionView_01 } from "@/components/agents-ui/blocks/agent-session-view-01"
+import { ConversationView } from "@/components/jarvis/conversation-view"
 import { PageHeader } from "@/components/page-header"
 import { useTheme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import { useHealth } from "@/hooks/use-health"
-
-// The aura shader takes a hex; our copper accent lives in CSS as oklch.
-const COPPER = "#d97757"
 
 export function VoicePage({ httpBase }: { httpBase: string }) {
   const health = useHealth(httpBase)
@@ -126,18 +123,11 @@ function VoiceSession({ session }: { session: ReturnType<typeof useSession> }) {
   }
 
   return (
-    <div className="relative min-h-0 flex-1">
-      {/* The session view renders the visualizer + transcript + controls, but
+    <div className="relative flex min-h-0 flex-1 flex-col">
+      {/* ConversationView renders the visualizer + transcript + controls, but
           not audio playback — without this you see the aura and hear nothing. */}
       <RoomAudioRenderer room={session.room} />
-      <AgentSessionView_01
-        themeMode={isDark ? "dark" : "light"}
-        audioVisualizerType="aura"
-        audioVisualizerColor={COPPER}
-        preConnectMessage="Jarvis is listening…"
-        supportsVideoInput={false}
-        supportsScreenShare={false}
-      />
+      <ConversationView themeMode={isDark ? "dark" : "light"} />
     </div>
   )
 }

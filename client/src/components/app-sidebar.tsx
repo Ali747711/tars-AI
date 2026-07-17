@@ -13,8 +13,8 @@ import type { Page } from "@/hooks/use-route"
 import { cn } from "@/lib/utils"
 
 const NAV: { page: Page; label: string; icon: LucideIcon }[] = [
-  { page: "chat", label: "Chat", icon: MessageSquare },
   { page: "voice", label: "Voice", icon: AudioLines },
+  { page: "chat", label: "Chat", icon: MessageSquare },
   { page: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { page: "routines", label: "Routines", icon: CalendarClock },
   { page: "activity", label: "Activity", icon: History },
